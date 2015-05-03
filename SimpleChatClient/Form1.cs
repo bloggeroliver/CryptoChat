@@ -1,7 +1,7 @@
 ﻿/*
 The MIT License (MIT)
 
-Copyright (c) 2015 bloggeroliver
+Copyright (c) 2015 Oliver Scheel
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -21,6 +21,11 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
+ * @author    Oliver Scheel <bloggeroliver@web.de>
+ * @copyright 2015 Oliver Scheel
+ * @license   http://www.opensource.org/licenses/mit-license.html  MIT License
+ * @link      http://csharp-tricks.blogspot.de/p/c-crypto-chat.html
+ 
 */
 
 using System;
@@ -418,6 +423,7 @@ namespace SimpleChatClient
         User CurrentUser = null;
         CookieContainer Cookie = null;
         string ServerUrl = "http://bloggeroliver.bplaced.net/Chat/V4/";
+        public RSACryptoServiceProvider RSAServer;
 
         List<User> ActiveChats = new List<User>();
 
@@ -486,16 +492,27 @@ namespace SimpleChatClient
             string ClearChallenge = Encoding.UTF8.GetString(Crypto.RSADecrypt(Convert.FromBase64String(Challenge), RSALogin.ExportParameters(true)));
             string Login = HTTPPost(ServerUrl + "login.php", "username=" + username + "&challenge=" + Uri.EscapeDataString(ClearChallenge));
             
-            if (Login == "LoginGood")
-            {
-                CurrentUser = new User(username);
-                CurrentUser.RSASend = Crypto.GetRSA(username, password, "send");
-                return true;
-            }
-            else
+            if (Login == "LoginBad")
             {
                 Cookie = null;
                 return false;
+                
+            }
+            else
+            {
+                CurrentUser = new User(username);
+                CurrentUser.RSASend = Crypto.GetRSA(username, password, "send");
+
+                RSAServer = new RSACryptoServiceProvider();
+                string[] LoginParts = Login.Split(new string[] { "<br />" }, StringSplitOptions.RemoveEmptyEntries);
+                string ClearLogin = "";
+                foreach (string s in LoginParts)
+                {
+                    ClearLogin += Encoding.UTF8.GetString(Crypto.RSADecrypt(Convert.FromBase64String(s), RSALogin.ExportParameters(true)));
+                }
+                RSAServer.FromXmlString(ClearLogin);
+
+                return true;
             }
         }
 
