@@ -1,5 +1,6 @@
 <?php
 include("connect.php");
+include('Crypt/RSA.php');
 
 session_start();
 
@@ -17,5 +18,11 @@ $stmt->execute();
 $stmt->bind_result($sendkey);
 $row = $stmt->fetch();
 
-echo $sendkey;
+$rand = rand(0, 65536);
+$rsa = new Crypt_RSA();
+$rsa->loadKey($_SESSION["ServerPriv"]);
+$rsa->setSignatureMode(CRYPT_RSA_SIGNATURE_PKCS1);
+$signature = $rsa->sign($sendkey."<br />".$rand);
+
+echo base64_encode($signature)."<br />".$sendkey."<br />".$rand;
 ?>

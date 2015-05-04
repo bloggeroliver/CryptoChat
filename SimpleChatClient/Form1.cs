@@ -569,7 +569,11 @@ namespace SimpleChatClient
 
         public string GetSendKey(string user)
         {
-            return (HTTPPost(ServerUrl + "getsendkey.php", "user=" + user));
+            string[] Lines = (HTTPPost(ServerUrl + "getsendkey.php", "user=" + user)).Split(new string[] { "<br />" }, StringSplitOptions.None);
+            if (RSAServer.VerifyData(Encoding.UTF8.GetBytes(Lines[1] + "<br />" + Lines[2]), new SHA1CryptoServiceProvider(), Convert.FromBase64String(Lines[0])))
+                return Lines[1];
+            else
+                return "Error";
         }
 
         public List<Message> Receive()
