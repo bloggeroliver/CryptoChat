@@ -431,6 +431,8 @@ namespace SimpleChatClient
         CookieContainer Cookie = null;
         string ServerUrl = "http://bloggeroliver.bplaced.net/Chat/V4/";
         public RSACryptoServiceProvider RSAServer;
+        int ReceiveCounter;
+        int SendCounter;
 
         List<User> ActiveChats = new List<User>();
 
@@ -526,6 +528,9 @@ namespace SimpleChatClient
                 CurrentUser = new User(username);
                 CurrentUser.RSASend = RSAUser;
 
+                SendCounter = 1;
+                ReceiveCounter = 1;
+
                 RSAServer = new RSACryptoServiceProvider();
                 string[] LoginParts = Login.Split(new string[] { "<br />" }, StringSplitOptions.RemoveEmptyEntries);
                 string ClearLogin = "";
@@ -557,7 +562,9 @@ namespace SimpleChatClient
                     break;
                 }
             }
-            return (HTTPPost(ServerUrl + "send.php", "Recipient=" + recipient + "&Message=" + (EncryptedMessage)));
+            string Result = (HTTPPost(ServerUrl + "send.php", "Recipient=" + recipient + "&Message=" + (EncryptedMessage) + "&SendCounter=" + Uri.EscapeDataString(Convert.ToBase64String(Crypto.RSAEncrypt(Encoding.UTF8.GetBytes(SendCounter.ToString()), RSAServer.ExportParameters(false))))));
+            SendCounter++;
+            return Result;
         }
 
         public string GetSendKey(string user)
@@ -570,7 +577,8 @@ namespace SimpleChatClient
             // receive messages
             if (CurrentUser == null)
                 return new List<Message>();
-            string Messages = HTTPPost(ServerUrl + "receive.php", "");
+            string Messages = HTTPPost(ServerUrl + "receive.php", "&RecieveCounter=" + Uri.EscapeDataString(Convert.ToBase64String(Crypto.RSAEncrypt(Encoding.UTF8.GetBytes(ReceiveCounter.ToString()), RSAServer.ExportParameters(false)))));
+            ReceiveCounter++;
             if (Messages == null)
                 return new List<Message>();
 

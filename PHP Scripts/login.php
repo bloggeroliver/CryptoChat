@@ -11,10 +11,12 @@ if($challenge == $_SESSION["challenge"] && isset($_SESSION["challenge"]) && ($_S
 
 	$rsaserv = new Crypt_RSA();
 	extract($rsaserv->createKey());
-	$rsaserv->loadKey($pubkey, CRYPT_RSA_PUBLIC_FORMAT_XML);
 
 	$_SESSION["ServerPriv"] = $privatekey;
     $_SESSION["LoggedIn"] = true; 
+	
+	$_SESSION["ReceiveCounter"] = 0; 
+	$_SESSION["SendCounter"] = 0; 
 	
 	$rsaserv->setPublicKey($publickey);
 	
