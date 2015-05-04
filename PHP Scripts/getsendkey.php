@@ -10,7 +10,7 @@ if(!isset($_SESSION['LoggedIn'])) {
 	exit; 
 } 	
 
-$stmt = $conn->prepare("SELECT sendkey FROM Users WHERE username = ?");
+$stmt = $conn->prepare("SELECT publickey FROM Users WHERE username = ?");
 $stmt->bind_param("s", $User);
 $stmt->execute();
 

@@ -42,14 +42,14 @@
     </dependentAssembly>
   </dependency>
   <dependency>
-    <dependentAssembly dependencyType="install" allowDelayedBinding="true" codebase="CryptoChat.exe" size="20480">
+    <dependentAssembly dependencyType="install" allowDelayedBinding="true" codebase="CryptoChat.exe" size="21504">
       <assemblyIdentity name="CryptoChat" version="1.0.0.0" language="neutral" processorArchitecture="msil" />
       <hash>
         <dsig:Transforms>
           <dsig:Transform Algorithm="urn:schemas-microsoft-com:HashTransforms.Identity" />
         </dsig:Transforms>
         <dsig:DigestMethod Algorithm="http://www.w3.org/2000/09/xmldsig#sha256" />
-        <dsig:DigestValue>QMN4T7y0Ah8FbidyGTTDeq82nX4mgQAaiC4wZSxbHis=</dsig:DigestValue>
+        <dsig:DigestValue>lpoaESPmCfIJLAxLQD5MP2C4H1ga1ihiTg88zul4Lis=</dsig:DigestValue>
       </hash>
     </dependentAssembly>
   </dependency>

@@ -18,7 +18,7 @@ if($challenge == $_SESSION["challenge"] && isset($_SESSION["challenge"]) && ($_S
 	
 	$rsaserv->setPublicKey($publickey);
 	
-	$stmt = $conn->prepare("SELECT loginkey FROM Users WHERE username = ? LIMIT 1");
+	$stmt = $conn->prepare("SELECT publickey FROM Users WHERE username = ? LIMIT 1");
 	$stmt->bind_param("s", $username);
 	$stmt->execute();
 

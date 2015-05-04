@@ -2,8 +2,8 @@
 include("connect.php");
 
 $username = $_POST["username"];
-$loginkey = $_POST["loginkey"];
-$sendkey = $_POST["sendkey"];
+$publickey = $_POST["publickey"];
+$privatekey = $_POST["privatekey"];
 
 $stmt = $conn->prepare("SELECT username FROM Users WHERE username = ?");
 $stmt->bind_param("s", $username);
@@ -16,9 +16,17 @@ if ($num_rows > 0) {
 	echo "Existing";
 }
 else { 
-	$stmt = $conn->prepare("INSERT INTO Users (username, loginkey, sendkey) VALUES (?, ?, ?);");
-	$stmt->bind_param("sss", $username, $loginkey, $sendkey);
+if (isset($privatekey)) {
+	$stmt = $conn->prepare("INSERT INTO Users (username, publickey, privatekey) VALUES (?, ?, ?);");
+	$stmt->bind_param("sss", $username, $publickey, $privatekey);
 	$stmt->execute();
 	echo "Success";
+}
+else {
+	$stmt = $conn->prepare("INSERT INTO Users (username, publickey) VALUES (?, ?);");
+	$stmt->bind_param("ss", $username, $publickey);
+	$stmt->execute();
+	echo "Success";
+}
 }
 ?>

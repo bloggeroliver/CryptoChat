@@ -99,7 +99,7 @@ namespace SimpleChatClient
         private void button2_Click(object sender, EventArgs e)
         {
             Client = new SimpleChatClient();
-            string Register = Client.Register(textBox1.Text, textBox2.Text);
+            string Register = Client.Register(textBox1.Text, textBox2.Text, checkBox1.Checked);
             MessageBox.Show(Register);
         }
 
@@ -331,7 +331,7 @@ namespace SimpleChatClient
                 IV = Generator.GetBytes(16);
             }
 
-            static public string  CreateRSA(string filename, string password, string folder)
+            static public string  CreateRSA(string filename, string password, string folder, bool online)
             {
                 RSACryptoServiceProvider RSA = new RSACryptoServiceProvider();
                 byte[] Key;
@@ -346,8 +346,15 @@ namespace SimpleChatClient
                 if (File.Exists(folder + "/" + filename))
                     return "Existing";
 
-                File.WriteAllBytes(folder + "/" + filename, EncryptedKey);
-                return RSA.ToXmlString(false);
+                if (!online)
+                {
+                    File.WriteAllBytes(folder + "/" + filename, EncryptedKey);
+                    return RSA.ToXmlString(false);
+                }
+                else
+                {
+                    return RSA.ToXmlString(false) + "<br />" + Convert.ToBase64String(EncryptedKey);
+                }
             }
 
             static public RSACryptoServiceProvider GetRSA(string filename, string password, string folder)
@@ -467,17 +474,23 @@ namespace SimpleChatClient
             }
         }
 
-        public string Register(string username, string password)
+        public string Register(string username, string password, bool online)
         {
             // register a new user
             if (HTTPPost(ServerUrl + "checkuser.php", "username=" + username) == "No")
             {
-                string LoginPubKey = Crypto.CreateRSA(username, password, "users");
-                if (LoginPubKey == "Existing")
+                string Key = Crypto.CreateRSA(username, password, Environment.GetFolderPath(Environment.SpecialFolder.UserProfile) + "\\CryptoChat\\users", online);
+                if (Key == "Existing")
                     return "Password file already existing on computer.";
-                string SendPubKey = Crypto.CreateRSA(username, password, "send");
 
-                return HTTPPost(ServerUrl + "register.php", "username=" + username + "&loginkey=" + Uri.EscapeDataString(LoginPubKey) + "&sendkey=" + Uri.EscapeDataString(SendPubKey));
+                if (!online)
+                    return HTTPPost(ServerUrl + "register.php", "username=" + username + "&loginkey=" + Uri.EscapeDataString(Key) + "&publickey=" + Uri.EscapeDataString(Key));
+                else
+                {
+                    string[] KeyParts = Key.Split(new string[] { "<br />" }, StringSplitOptions.RemoveEmptyEntries);
+                    return HTTPPost(ServerUrl + "register.php", "username=" + username + "&loginkey=" + Uri.EscapeDataString(Key) + "&publickey=" + Uri.EscapeDataString(KeyParts[0]) + "&privatekey=" + Uri.EscapeDataString(KeyParts[1]));
+                }
+
             }
             else
                 return "Already existing.";
@@ -488,8 +501,18 @@ namespace SimpleChatClient
             // login
             Cookie = new CookieContainer();
             string Challenge = HTTPPost(ServerUrl + "prelogin.php", "username=" + username);
-            RSACryptoServiceProvider RSALogin = Crypto.GetRSA(username, password, "users");
-            string ClearChallenge = Encoding.UTF8.GetString(Crypto.RSADecrypt(Convert.FromBase64String(Challenge), RSALogin.ExportParameters(true)));
+            string[] ChallengeParts = Challenge.Split(new string[] { "<br />" }, StringSplitOptions.RemoveEmptyEntries);
+            RSACryptoServiceProvider RSAUser = new RSACryptoServiceProvider();
+            if (ChallengeParts.Length == 1)
+                RSAUser = Crypto.GetRSA(username, password, Environment.GetFolderPath(Environment.SpecialFolder.UserProfile) + "\\CryptoChat\\users");
+            else {
+                byte[] Key;
+                byte[] IV;
+                Crypto.CreateSymmetricKey(password, username, out Key, out IV);
+                RSAUser.FromXmlString(Crypto.AESDecode(Convert.FromBase64String(ChallengeParts[1]), Key, IV));
+            }
+
+            string ClearChallenge = Encoding.UTF8.GetString(Crypto.RSADecrypt(Convert.FromBase64String(ChallengeParts[0]), RSAUser.ExportParameters(true)));
             string Login = HTTPPost(ServerUrl + "login.php", "username=" + username + "&challenge=" + Uri.EscapeDataString(ClearChallenge));
             
             if (Login == "LoginBad")
@@ -501,14 +524,14 @@ namespace SimpleChatClient
             else
             {
                 CurrentUser = new User(username);
-                CurrentUser.RSASend = Crypto.GetRSA(username, password, "send");
+                CurrentUser.RSASend = RSAUser;
 
                 RSAServer = new RSACryptoServiceProvider();
                 string[] LoginParts = Login.Split(new string[] { "<br />" }, StringSplitOptions.RemoveEmptyEntries);
                 string ClearLogin = "";
                 foreach (string s in LoginParts)
                 {
-                    ClearLogin += Encoding.UTF8.GetString(Crypto.RSADecrypt(Convert.FromBase64String(s), RSALogin.ExportParameters(true)));
+                    ClearLogin += Encoding.UTF8.GetString(Crypto.RSADecrypt(Convert.FromBase64String(s), RSAUser.ExportParameters(true)));
                 }
                 RSAServer.FromXmlString(ClearLogin);
 
